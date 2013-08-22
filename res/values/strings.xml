@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">POW</string>
+    <string name="action_settings">Settings</string>
+    <string name="hello_world">Hello world!\nHere you can enter your password safely:)</string>
+    <string name="password">Password</string>
+    <string name="username">Username</string>
+    <string name="server">server url</string>
+    <string name="serverArguments">server arguments</string>
+    <string name="login">Login</string>
+    <string name="branding">Branding</string>
+
+</resources>
