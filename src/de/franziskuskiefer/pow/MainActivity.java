@@ -101,8 +101,7 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 
 			@Override
 			public void onClick(View v) {
-				// TODO Auto-generated method stub
-				Toast.makeText(getApplicationContext(), "Not Implemented Yet!", Toast.LENGTH_LONG).show();
+				finish();
 			}
 		});
 	}
