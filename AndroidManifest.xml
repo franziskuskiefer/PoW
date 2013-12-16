@@ -5,8 +5,8 @@
     android:versionName="1.0" >
 
     <uses-sdk
-        android:minSdkVersion="8"
-        android:targetSdkVersion="17" />
+        android:minSdkVersion="11"
+        android:targetSdkVersion="19" />
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
@@ -18,11 +18,9 @@
             android:name="de.franziskuskiefer.pow.MainActivity"
             android:label="@string/app_name"
             android:excludeFromRecents="true"
-            android:noHistory="true" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Holo.NoActionBar"
+            android:windowSoftInputMode="stateVisible" >
             <intent-filter>
                 <data android:scheme="pow"/>
                 <action android:name="android.intent.action.VIEW"/>

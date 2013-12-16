@@ -1,92 +1,81 @@
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/OuterScroll"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" >
-
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context=".MainActivity" >
+    
+    <EditText
+        android:id="@+id/password"
+        android:inputType="textPassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif"
+        android:layout_alignLeft="@+id/username"
+        android:layout_below="@+id/username"
+        android:hint="@string/password"/>
+    
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="294dp"
-        android:paddingBottom="@dimen/activity_vertical_margin"
-        android:paddingLeft="@dimen/activity_horizontal_margin"
-        android:paddingRight="@dimen/activity_horizontal_margin"
-        android:paddingTop="@dimen/activity_vertical_margin"
-        tools:context=".MainActivity" >
-        
-        <LinearLayout
-        android:layout_width="0px"
-        android:layout_height="0px"
-        android:focusable="true"
-        android:focusableInTouchMode="true" />
+        android:layout_height="48dp"
+        android:layout_alignParentBottom="true" >
 
-        <TextView
-            android:id="@+id/hostAddress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/server" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dip"
+            android:layout_alignParentTop="true"
+            android:layout_marginLeft="4dip"
+            android:layout_marginRight="4dip"
+            android:background="?android:attr/dividerVertical" />
 
-        <TextView
-            android:id="@+id/serverParams"
-            android:layout_width="wrap_content"
+        <View
+            android:id="@+id/ViewColorPickerHelper"
+            android:layout_width="1dip"
             android:layout_height="wrap_content"
-            android:layout_alignLeft="@+id/hostAddress"
-            android:layout_below="@+id/hostAddress"
-            android:text="@string/serverArguments" />
-
-        <EditText
-            android:id="@+id/username"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/brandingImage"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentTop="true"
             android:layout_centerHorizontal="true"
-            android:layout_marginTop="20dp"
-            android:ems="10"
-            android:inputType="textEmailAddress" />
+            android:layout_marginBottom="4dip"
+            android:layout_marginTop="4dip"
+            android:background="?android:attr/dividerVertical" />
 
         <Button
-            android:id="@+id/loginButton"
+            android:id="@+id/BtnSetupCancel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@+id/password"
-            android:layout_centerHorizontal="true"
-            android:text="@string/login" />
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="true"
+            android:layout_toLeftOf="@id/ViewColorPickerHelper"
+            android:background="?android:attr/selectableItemBackground"
+            android:text="@android:string/cancel" />
 
-        <TextView
-            android:id="@+id/passwordLabel"
+        <Button
+            android:id="@+id/BtnSetupOk"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignLeft="@+id/username"
-            android:layout_below="@+id/username"
-            android:text="@string/password"
-            android:textAppearance="?android:attr/textAppearanceMedium" />
-
-        <EditText
-            android:id="@+id/password"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignLeft="@+id/username"
-            android:layout_below="@+id/passwordLabel"
-            android:ems="10"
-            android:inputType="textPassword" >
-        </EditText>
-
-        <TextView
-            android:id="@+id/usernameLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignLeft="@+id/username"
-            android:layout_below="@+id/brandingImage"
-            android:text="@string/username"
-            android:textAppearance="?android:attr/textAppearanceMedium" />
-
-        <ImageView
-            android:id="@+id/brandingImage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/serverParams"
-            android:layout_centerHorizontal="true"
-            android:src="@android:drawable/alert_dark_frame" android:contentDescription="@string/branding"/>
-
+            android:layout_height="match_parent"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true"
+            android:layout_toRightOf="@id/ViewColorPickerHelper"
+            android:background="?android:attr/selectableItemBackground"
+            android:text="@string/Login" />
     </RelativeLayout>
 
-</ScrollView>
+    <EditText
+        android:id="@+id/username"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:ems="10"
+        android:hint="@string/username"
+        android:inputType="textEmailAddress" >
+
+        <requestFocus />
+    </EditText>
+    
+</RelativeLayout>

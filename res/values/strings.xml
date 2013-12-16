@@ -8,7 +8,7 @@
     <string name="username">Username</string>
     <string name="server"></string>
     <string name="serverArguments"></string>
-    <string name="login">Login</string>
     <string name="branding">Branding</string>
+    <string name="Login">Login</string>
 
 </resources>
