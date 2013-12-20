@@ -11,7 +11,6 @@ import org.json.JSONObject;
 
 import android.app.ActionBar;
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -20,10 +19,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 import de.franziskuskiefer.android.httplibrary.Callback;
 import de.franziskuskiefer.android.httplibrary.HTTPS_POST;
 
@@ -123,7 +120,7 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 		params.put("username", ((EditText) findViewById(R.id.username)).getText().toString());
 		params.put("clientMsg", m);
 
-		new HTTPS_POST(this, false, params).execute(authURL);
+		new HTTPS_POST(this, getApplicationContext(), false, params).execute(authURL);
 	}
 
 	@Override
