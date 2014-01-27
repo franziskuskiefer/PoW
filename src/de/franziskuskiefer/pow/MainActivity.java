@@ -22,7 +22,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import de.franziskuskiefer.android.httplibrary.Callback;
-import de.franziskuskiefer.android.httplibrary.HTTPS_POST;
+import de.franziskuskiefer.android.httplibrary.async.HTTPS_POST;
 
 public class MainActivity extends Activity implements OnClickListener, Callback {
 
