@@ -10,5 +10,9 @@
     <string name="serverArguments"></string>
     <string name="branding">Branding</string>
     <string name="Login">Login</string>
+    <string name="tsokeError">An error occurred during the login process. For security reasons you are returned to the home screen.</string>
+    <string name="ok">OK</string>
+    <string name="parameterError">An error occurred while retrieving parameters from the server. For security reasons you are returned to the home screen.</string>
+    <string name="userError">Incorrect username or password. Please try again.</string>
 
 </resources>

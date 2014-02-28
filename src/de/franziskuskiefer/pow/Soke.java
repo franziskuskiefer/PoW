@@ -5,16 +5,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
-import org.bouncycastle.asn1.nist.NISTNamedCurves;
-import org.bouncycastle.asn1.x9.X9ECParameters;
-import org.bouncycastle.crypto.PBEParametersGenerator;
-import org.bouncycastle.crypto.digests.SHA256Digest;
-import org.bouncycastle.crypto.generators.PKCS5S2ParametersGenerator;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.bouncycastle.math.ec.ECPoint;
+import org.spongycastle.asn1.nist.NISTNamedCurves;
+import org.spongycastle.asn1.x9.X9ECParameters;
+import org.spongycastle.crypto.PBEParametersGenerator;
+import org.spongycastle.crypto.digests.SHA256Digest;
+import org.spongycastle.crypto.generators.PKCS5S2ParametersGenerator;
+import org.spongycastle.crypto.params.KeyParameter;
+import org.spongycastle.math.ec.ECPoint;
 
 import android.util.Log;
-import de.franziskuskiefer.android.httplibrary.Util;
 
 public class Soke {
 	
@@ -28,26 +27,17 @@ public class Soke {
 	private ECPoint X;
 	// secret key
 	private BigInteger x;
+	private String a2 = null;
 	
 	public Soke() {
 		// TODO Auto-generated constructor stub
 	}
 	
-	private byte[] hexStringToByteArray(String s) {
-	    int len = s.length();
-	    byte[] data = new byte[len / 2];
-	    for (int i = 0; i < len; i += 2) {
-	        data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-	                             + Character.digit(s.charAt(i+1), 16));
-	    }
-	    return data;
-	}
-	
-	public String next(String YString, String pwd, String salt, String trans) {
+	public String[] next(String YString, String pwd, String salt, String trans, String cert) {
 		
 		// Y
 		// XXX: we only accept affine X strings for now
-		ECPoint Y = secp129r1.getCurve().decodePoint(hexStringToByteArray(YString));
+		ECPoint Y = secp129r1.getCurve().decodePoint(Util.hexStringToByteArray(YString));
 		
 		// hash password
 		String h = hashPwd(pwd, salt);
@@ -59,7 +49,7 @@ public class Soke {
 		// Z <- xY
 		ECPoint key = Y.multiply(this.x);
 		
-		return hashedKey("certHash", Util.byteArrayToHexString(key.getEncoded()), trans, h);
+		return genAuthTokens(cert, Util.byteArrayToHexString(key.getEncoded()), trans, h);
 	}
 
 	public String init(){
@@ -68,12 +58,17 @@ public class Soke {
 		do {
 			x = new BigInteger(secp129r1.getN().bitLength(), secureRandom);
 		} while (x.equals(BigInteger.ZERO) || x.compareTo(secp129r1.getN()) >= 0);
-		X = secp129r1.getG().multiply(x);
-		Log.d("POW", "x: "+x.toString());
-		Log.d("POW", "Xx: "+X.getX().toBigInteger().toString(16));
-		Log.d("POW", "Xy: "+X.getY().toBigInteger().toString(16));
+		this.X = secp129r1.getG().multiply(x);
 
+		return pointToString(this.X);
+	}
+
+	private String pointToString(ECPoint X) {
 		return "04"+X.getX().toBigInteger().toString(16)+X.getY().toBigInteger().toString(16);
+	}
+	
+	public boolean verifyServer(String serverA2){
+		return serverA2 != null && this.a2 != null && serverA2.equals(this.a2);
 	}
 	
 	private String hashPwd(String pwd, String salt) {
@@ -87,34 +82,58 @@ public class Soke {
 		return hashedPwd;
 	}
 	
-	private String hashedKey(String certHash, String sharedSecret, String trans, String pwdHash){
+	private String[] genAuthTokens(String certHash, String sharedSecret, String trans, String pwdHash){
 		MessageDigest md;
 		try {
-			StringBuilder sb = new StringBuilder();
-			sb.append("POWServerHello=");
-			sb.append(trans);
-			sb.append("&passHash=");
-			sb.append(pwdHash);
-			sb.append("&certHash=");
-			sb.append(certHash);
-			sb.append("&sharedSecret=");
-			sb.append(sharedSecret);
+			byte[] digest = genKey(certHash, sharedSecret, trans, pwdHash);
 			
 			md = MessageDigest.getInstance("SHA-256");
-			md.update(sb.toString().getBytes());
-			byte[] digest = md.digest();
 			
 			md.update(Util.byteArrayToHexString(digest).getBytes());
 			md.update("&auth1".getBytes());
-			digest = md.digest();
+			String a1 = Util.byteArrayToHexString(md.digest());
 			
-			return Util.byteArrayToHexString(digest);
+			// compute second auth token and store it to for later use
+			md.update(Util.byteArrayToHexString(digest).getBytes());
+			md.update("&auth2".getBytes());
+			this.a2 = Util.byteArrayToHexString(md.digest());
+			
+			// we compute an additional auth token to check if password or certificate was wrong
+//			digest = genKey(certHash, "sharedSecret", trans, "pwdHash");
+			digest = genKey("cert", sharedSecret, trans, pwdHash);
+			md.update(Util.byteArrayToHexString(digest).getBytes());
+			md.update("&auth1".getBytes());
+			String a1NoPwd = Util.byteArrayToHexString(md.digest());
+			
+			return new String[]{a1, a1NoPwd};
 		} catch (NoSuchAlgorithmException e) {
 			Log.d("POW", e.getLocalizedMessage());
 			e.printStackTrace();
 		}
 
 		return null;
+	}
+
+	private byte[] genKey(String certHash, String sharedSecret, String trans, String pwdHash) throws NoSuchAlgorithmException {
+		StringBuilder sb = new StringBuilder();
+		sb.append("POWServerHello=");
+		sb.append(trans);
+		sb.append("&passHash=");
+		sb.append(pwdHash);
+		sb.append("&certHash=");
+		sb.append(certHash);
+		sb.append("&sharedSecret=");
+		sb.append(sharedSecret);
+		
+		Log.d("POW", "to hash: "+sb.toString());
+		
+		MessageDigest mdk = MessageDigest.getInstance("SHA-256");
+		mdk.update(sb.toString().getBytes());
+		return mdk.digest();
+	}
+	
+	public boolean isFinished(){
+		return this.a2 != null ? true : false;
 	}
 
 }
