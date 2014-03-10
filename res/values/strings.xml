@@ -14,5 +14,6 @@
     <string name="ok">OK</string>
     <string name="parameterError">An error occurred while retrieving parameters from the server. For security reasons you are returned to the home screen.</string>
     <string name="userError">Incorrect username or password. Please try again.</string>
+    <string name="personalisation">Personalisation</string>
 
 </resources>

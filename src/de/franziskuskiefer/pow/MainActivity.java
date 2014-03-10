@@ -14,20 +14,33 @@ import org.json.JSONObject;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Point;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.provider.MediaStore;
 import android.util.Log;
+import android.view.Display;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import de.franziskuskiefer.android.httplibrary.Callback;
 import de.franziskuskiefer.android.httplibrary.async.HTTPS_POST;
 
 public class MainActivity extends Activity implements OnClickListener, Callback {
 	
+	private static final String PERSONALISED = "personlised";
+
 	static {
 		Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
 	}
@@ -43,11 +56,24 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
 		setTheme(R.style.CustomTheme);
+		setContentView(R.layout.activity_main);
 		ActionBar actionBar = getActionBar();
 		actionBar.setDisplayShowHomeEnabled(false);
-		setContentView(R.layout.activity_main);
+		getWindow().setBackgroundDrawable(new ColorDrawable(0));
 		addListener();
+
+		String image = isPersonalised();
+		if (image == null) {
+			Intent intent = new Intent();
+			intent.setType("image/*");
+			intent.setAction(Intent.ACTION_GET_CONTENT);
+			intent.addCategory(Intent.CATEGORY_OPENABLE);
+			startActivityForResult(Intent.createChooser(intent, "Select Background"), 123);
+		} else {
+			loadPersonalisation(image);
+		}
 		
 		// this.spake = new SPake();
 		init();
@@ -334,6 +360,79 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 	private void usernamePwdError() {
 		Alert alert = Alert.newInstance(R.string.userError, false);
 		alert.show(getFragmentManager(), "dialog");
+	}
+
+	public static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+		// Raw height and width of image
+		final int height = options.outHeight;
+		final int width = options.outWidth;
+		int inSampleSize = 5;
+
+		if (height > reqHeight || width > reqWidth) {
+
+			final int halfHeight = height / 2;
+			final int halfWidth = width / 2;
+
+			// Calculate the largest inSampleSize value that is a power of 2 and keeps both
+			// height and width larger than the requested height and width.
+			while ((halfHeight / inSampleSize) > reqHeight && (halfWidth / inSampleSize) > reqWidth) {
+				inSampleSize *= 2;
+			}
+		}
+
+		return inSampleSize;
+	}
+	
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		switch (requestCode) {
+			case 123:
+				if (resultCode == RESULT_OK) {
+					Uri selectedImage = data.getData();
+					String[] filePathColumn = {MediaStore.Images.Media.DATA};
+
+					Cursor cursor = getContentResolver().query(selectedImage, filePathColumn, null, null, null);
+					cursor.moveToFirst();
+
+					int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+					String filePath = cursor.getString(columnIndex);
+					cursor.close();
+					
+					// load the image
+					loadPersonalisation(filePath);
+					
+					// set the app personalised
+					setPersonalised(filePath);
+				}
+		}
+	}
+
+	private void loadPersonalisation(String filePath) {
+		// get image size
+		BitmapFactory.Options options = new BitmapFactory.Options();
+
+		ImageView iv = ((ImageView)findViewById(R.id.personalised));
+		
+		// Calculate inSampleSize
+		options.inSampleSize = calculateInSampleSize(options, iv.getMeasuredWidth(), iv.getMeasuredHeight());
+
+		// Decode bitmap with inSampleSize set
+		options.inJustDecodeBounds = false;
+		Bitmap bgImage = BitmapFactory.decodeFile(filePath, options);
+
+		((ImageView)findViewById(R.id.personalised)).setImageBitmap(bgImage);
+	}
+
+	private String isPersonalised() {
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		return prefs.getString(PERSONALISED, null);
+	}
+	
+	private void setPersonalised(String s) {
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		Editor editor = prefs.edit();
+		editor.putString(PERSONALISED, s);
+		editor.commit();
 	}
 	
 }
