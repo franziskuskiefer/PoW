@@ -1,4 +1,4 @@
 <h3>POW</h3>
-Version 1.0<br>
+Version 0.9<br>
 Copyright 2014<br>
-<b>www.franziskuskiefer.de</b>
+<b>https://surrey.ac.uk/sccs/</b>
