@@ -54,13 +54,19 @@ public class Soke {
 
 	public String init(){
 
+		// XXX: PRNG fix is applied
 		SecureRandom secureRandom = new SecureRandom();
+		String s = "";
 		do {
-			x = new BigInteger(secp129r1.getN().bitLength(), secureRandom);
-		} while (x.equals(BigInteger.ZERO) || x.compareTo(secp129r1.getN()) >= 0);
-		this.X = secp129r1.getG().multiply(x);
+			do {
+				x = new BigInteger(secp129r1.getN().bitLength(), secureRandom);
+			} while (x.equals(BigInteger.ZERO) || x.compareTo(secp129r1.getN()) >= 0);
+			this.X = secp129r1.getG().multiply(x);
 
-		return pointToString(this.X);
+			s = pointToString(this.X);
+		} while (s.length() != 98);
+		
+		return s;
 	}
 
 	private String pointToString(ECPoint X) {

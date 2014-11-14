@@ -49,7 +49,6 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 	private Soke soke;
 	private String sessionID;
 	private String authURL;
-	private String successURL;
 	private String trans;
 	private String iniTrans;
 	private String pwd;
@@ -57,6 +56,9 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		// apply fix for PRNG (necessary for pre Android 4.3)
+		PRNGFixes.apply();
 		
 		setTheme(R.style.CustomTheme);
 		setContentView(R.layout.activity_main);
@@ -108,6 +110,7 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 
 			this.sessionID = json.getString("sessionID");
 			this.authURL = json.getString("authURL");
+			Log.d("POW", "auth URL: "+this.authURL);
 			
 			new Branding(this).execute(json.getString("branding"));
 			getActionBar().setTitle(json.getString("url"));
@@ -308,7 +311,7 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 		Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
 		startActivity(browserIntent);
 		
-		Log.d("POW", "opening "+successURL+" in browser.");
+		Log.d("POW", "opening "+url+" in browser.");
 		finish();
 	}
 
