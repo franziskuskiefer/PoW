@@ -91,6 +91,9 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 			String queryString = data.getQuery();
 			try {
 				String decoded = URLDecoder.decode(queryString, "UTF-8");
+				// XXX: chrome seems to append = at the end, we have to remove that
+				if (decoded.charAt(decoded.length()-1) == '=')
+					decoded = decoded.substring(0, decoded.length()-1);
 				this.iniTrans = decoded;
 				handleInitResult(decoded);
 			} catch (UnsupportedEncodingException e) {
@@ -271,14 +274,14 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 						// add result to transcript
 						this.trans += "&POWServerExchange=" + Uri.encode(jsonString);
 						String[] a1 = soke.next(serverPoint , pwd, json.getString("salt"), trans, cert);
+						Log.d("POW", "auth token: "+a1[0]+" - "+a1[1]);
 						
 						// call auth server with auth token A1
 						if (a1 != null || a1.length == 2){
 							HashMap<String, String> params = buildFinalMessage(a1);
 							new HTTPS_POST(this, getApplicationContext(), true, params).execute(authURL);
 							//				returnToBrowser(this.successURL + "?auth1=" + auth + "&sessionID=" + this.sessionID);
-						}
-						else {
+						} else {
 							// this shouldn't happen!
 							sokeError();
 						}
