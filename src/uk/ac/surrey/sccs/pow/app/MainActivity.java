@@ -1,5 +1,11 @@
 package uk.ac.surrey.sccs.pow.app;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
@@ -13,10 +19,10 @@ import org.json.JSONObject;
 
 import android.app.ActionBar;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.ColorDrawable;
@@ -24,23 +30,27 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
-import android.provider.MediaStore;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnKeyListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Toast;
 import de.franziskuskiefer.android.httplibrary.Callback;
 import de.franziskuskiefer.android.httplibrary.async.HTTPS_POST;
 
-public class MainActivity extends Activity implements OnClickListener, Callback {
+public class MainActivity extends Activity implements OnClickListener, OnKeyListener, Callback {
 	
 	private static final String PERSONALISED = "personlised";
+	final String IMAGE_FILE = "image.png";
 
 	static {
 		Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
@@ -68,15 +78,19 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 		addListener();
 
 		String image = isPersonalised();
+		Log.d("POW", "checking personalisation ...");
 		if (image == null) {
 			Intent intent = new Intent();
 			intent.setType("image/*");
 			intent.setAction(Intent.ACTION_GET_CONTENT);
-			intent.addCategory(Intent.CATEGORY_OPENABLE);
+		    intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
 			startActivityForResult(Intent.createChooser(intent, "Select Background"), 123);
 		} else {
-			loadPersonalisation(image);
+			loadImage();
 		}
+		
+		// add key listener to enter key
+		((EditText) findViewById(R.id.password)).setOnKeyListener(this);
 		
 		// this.spake = new SPake();
 		init();
@@ -143,8 +157,12 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 	@Override
 	public void onClick(View v) {
 
+		startSoke();
+	}
+
+	private void startSoke() {
 		this.pwd = ((EditText) findViewById(R.id.password)).getText().toString();
-		
+
 		// Initialize / reset transcript
 		this.trans = this.iniTrans;
 
@@ -396,38 +414,103 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 			case 123:
 				if (resultCode == RESULT_OK) {
 					Uri selectedImage = data.getData();
-					String[] filePathColumn = {MediaStore.Images.Media.DATA};
-
-					Cursor cursor = getContentResolver().query(selectedImage, filePathColumn, null, null, null);
-					cursor.moveToFirst();
-
-					int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
-					String filePath = cursor.getString(columnIndex);
-					cursor.close();
-					
-					// load the image
-					loadPersonalisation(filePath);
+					decodeUri(selectedImage);
 					
 					// set the app personalised
-					setPersonalised(filePath);
+					setPersonalised(IMAGE_FILE);
 				}
 		}
 	}
 
-	private void loadPersonalisation(String filePath) {
-		// get image size
-		BitmapFactory.Options options = new BitmapFactory.Options();
+	private void saveImage(Bitmap img){
+		FileOutputStream outputStream;
 
-		ImageView iv = ((ImageView)findViewById(R.id.personalised));
-		
-		// Calculate inSampleSize
-		options.inSampleSize = calculateInSampleSize(options, iv.getMeasuredWidth(), iv.getMeasuredHeight());
+		try {
+		  outputStream = openFileOutput(IMAGE_FILE, Context.MODE_PRIVATE);
+		  ByteArrayOutputStream stream = new ByteArrayOutputStream();
+		  img.compress(Bitmap.CompressFormat.PNG, 100, stream);
+		  outputStream.write(stream.toByteArray());
+		  outputStream.close();
+		} catch (Exception e) {
+		  e.printStackTrace();
+		}
+	}
+	
+	private void loadImage(){
+		ParcelFileDescriptor parcelFD = null;
+		try {
+			File file = new File(getFilesDir(), IMAGE_FILE);
+			parcelFD = getContentResolver().openFileDescriptor(Uri.fromFile(file), "r");
+			FileDescriptor imageSource = parcelFD.getFileDescriptor();
 
-		// Decode bitmap with inSampleSize set
-		options.inJustDecodeBounds = false;
-		Bitmap bgImage = BitmapFactory.decodeFile(filePath, options);
+			// decode with inSampleSize
+			BitmapFactory.Options o2 = new BitmapFactory.Options();
+			Bitmap bitmap = BitmapFactory.decodeFileDescriptor(imageSource, null, o2);
 
-		((ImageView)findViewById(R.id.personalised)).setImageBitmap(bgImage);
+			Log.d("POW", "loading image ...");
+			// display image
+			((ImageView)findViewById(R.id.personalised)).setImageBitmap(bitmap);
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if (parcelFD != null)
+				try {
+					parcelFD.close();
+				} catch (IOException e) {
+					// ignored
+				}
+		}
+
+	}
+	
+	private void decodeUri(Uri uri) {
+		ParcelFileDescriptor parcelFD = null;
+		try {
+			parcelFD = getContentResolver().openFileDescriptor(uri, "r");
+			FileDescriptor imageSource = parcelFD.getFileDescriptor();
+
+			// Decode image size
+			BitmapFactory.Options o = new BitmapFactory.Options();
+			o.inJustDecodeBounds = true;
+			BitmapFactory.decodeFileDescriptor(imageSource, null, o);
+
+			// the new size we want to scale to
+			final int REQUIRED_SIZE = 1024;
+
+			// Find the correct scale value. It should be the power of 2.
+			int width_tmp = o.outWidth, height_tmp = o.outHeight;
+			int scale = 1;
+			while (true) {
+				if (width_tmp < REQUIRED_SIZE && height_tmp < REQUIRED_SIZE) {
+					break;
+				}
+				width_tmp /= 2;
+				height_tmp /= 2;
+				scale *= 2;
+			}
+
+			// decode with inSampleSize
+			BitmapFactory.Options o2 = new BitmapFactory.Options();
+			o2.inSampleSize = scale;
+			Bitmap bitmap = BitmapFactory.decodeFileDescriptor(imageSource, null, o2);
+
+			// display image
+			((ImageView)findViewById(R.id.personalised)).setImageBitmap(bitmap);
+
+			// save image
+			saveImage(bitmap);
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if (parcelFD != null)
+				try {
+					parcelFD.close();
+				} catch (IOException e) {
+					// ignored
+				}
+		}
 	}
 
 	private String isPersonalised() {
@@ -480,5 +563,13 @@ public class MainActivity extends Activity implements OnClickListener, Callback 
 		AboutDialog about = new AboutDialog(this);
 		about.setTitle("About POW");
 		about.show();
+	}
+
+	@Override
+	public boolean onKey(View v, int keyCode, KeyEvent event) {
+		if ((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER))
+           startSoke();
+		
+        return false;
 	}
 }
