@@ -21,54 +21,6 @@
         android:hint="@string/password"
         android:inputType="textPassword" />
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_alignParentBottom="true"
-        android:id="@+id/buttons" >
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dip"
-            android:layout_alignParentTop="true"
-            android:layout_marginLeft="4dip"
-            android:layout_marginRight="4dip"
-            android:background="?android:attr/dividerVertical" />
-
-        <View
-            android:id="@+id/ViewColorPickerHelper"
-            android:layout_width="1dip"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentTop="true"
-            android:layout_centerHorizontal="true"
-            android:layout_marginBottom="4dip"
-            android:layout_marginTop="4dip"
-            android:background="?android:attr/dividerVertical" />
-
-        <Button
-            android:id="@+id/BtnSetupCancel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentTop="true"
-            android:layout_toLeftOf="@id/ViewColorPickerHelper"
-            android:background="?android:attr/selectableItemBackground"
-            android:text="@android:string/cancel" />
-
-        <Button
-            android:id="@+id/BtnSetupOk"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentTop="true"
-            android:layout_toRightOf="@id/ViewColorPickerHelper"
-            android:background="?android:attr/selectableItemBackground"
-            android:text="@string/Login" />
-    </RelativeLayout>
-
     <EditText
         android:id="@+id/username"
         android:layout_width="match_parent"
@@ -87,8 +39,15 @@
         android:layout_height="fill_parent"
         android:layout_alignLeft="@+id/password"
         android:layout_alignRight="@+id/password"
-        android:layout_below="@+id/password"
-        android:layout_above="@+id/buttons"
+        android:layout_below="@+id/BtnSetupOk"
         android:contentDescription="@string/personalisation" />
 
-</RelativeLayout><!-- android:background="@drawable/teddy" -->
+    <Button
+        android:id="@+id/BtnSetupOk"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/password"
+        android:background="?android:attr/selectableItemBackground"
+        android:text="@string/Login" />
+
+</RelativeLayout> <!-- android:background="@drawable/teddy" -->

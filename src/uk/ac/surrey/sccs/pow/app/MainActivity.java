@@ -19,6 +19,7 @@ import org.json.JSONObject;
 
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -43,7 +44,6 @@ import android.view.View.OnKeyListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.Toast;
 import de.franziskuskiefer.android.httplibrary.Callback;
 import de.franziskuskiefer.android.httplibrary.async.HTTPS_POST;
 
@@ -62,6 +62,8 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 	private String trans;
 	private String iniTrans;
 	private String pwd;
+	private boolean sokeStarted = false;
+	private ProgressDialog pd;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -144,14 +146,14 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 		final Button loginButton = (Button) findViewById(R.id.BtnSetupOk);
 		loginButton.setOnClickListener(this);
 
-		final Button cancelButton = (Button) findViewById(R.id.BtnSetupCancel);
-		cancelButton.setOnClickListener(new OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				finish();
-			}
-		});
+//		final Button cancelButton = (Button) findViewById(R.id.BtnSetupCancel);
+//		cancelButton.setOnClickListener(new OnClickListener() {
+//
+//			@Override
+//			public void onClick(View v) {
+//				finish();
+//			}
+//		});
 	}
 
 	@Override
@@ -161,21 +163,28 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 	}
 
 	private void startSoke() {
-		this.pwd = ((EditText) findViewById(R.id.password)).getText().toString();
-
-		// Initialize / reset transcript
-		this.trans = this.iniTrans;
-
-		// execute tSoke init to get first message
-		this.soke = new Soke();
-		String m = soke.init();
-		HashMap<String, String> params = buildFirstMessage(m);
-		Log.d("POW", "params for init message");
-		for (Entry<String, String> s : params.entrySet()) {
-			Log.d("POW", s.getKey() +" - "+s.getValue());
+		if (!sokeStarted){
+			// avoid starting this more than once
+			sokeStarted = true;
+			// show progress dialogue
+			pd = ProgressDialog.show(this, "Login", "Authenticating ...", false, false);
+			
+			this.pwd = ((EditText) findViewById(R.id.password)).getText().toString();
+			
+			// Initialize / reset transcript
+			this.trans = this.iniTrans;
+			
+			// execute tSoke init to get first message
+			this.soke = new Soke();
+			String m = soke.init();
+			HashMap<String, String> params = buildFirstMessage(m);
+			Log.d("POW", "params for init message");
+			for (Entry<String, String> s : params.entrySet()) {
+				Log.d("POW", s.getKey() +" - "+s.getValue());
+			}
+			
+			new HTTPS_POST(this, getApplicationContext(), true, params).execute(authURL);
 		}
-
-		new HTTPS_POST(this, getApplicationContext(), true, params).execute(authURL);
 	}
 
 	private HashMap<String, String> buildFirstMessage(String m) {
@@ -332,6 +341,8 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 		Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
 		startActivity(browserIntent);
 		
+		resetProgress();
+		
 		Log.d("POW", "opening "+url+" in browser.");
 		finish();
 	}
@@ -372,17 +383,30 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 
 	}
 	
+	private void resetProgress() {
+		if (pd.isShowing()){
+			pd.dismiss();
+			sokeStarted = false;
+		}
+	}
+	
 	private void parameterError() {
+		resetProgress();
+		
 		Alert alert = Alert.newInstance(R.string.parameterError, true);
 		alert.show(getFragmentManager(), "dialog");
 	}
 	
 	private void sokeError() {
+		resetProgress();
+		
 		Alert alert = Alert.newInstance(R.string.tsokeError, true);
 		alert.show(getFragmentManager(), "dialog");
 	}
 	
 	private void usernamePwdError() {
+		resetProgress();
+		
 		Alert alert = Alert.newInstance(R.string.userError, false);
 		alert.show(getFragmentManager(), "dialog");
 	}
