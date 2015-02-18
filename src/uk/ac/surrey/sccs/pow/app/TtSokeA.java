@@ -15,7 +15,7 @@ import org.spongycastle.math.ec.ECPoint;
 
 import android.util.Log;
 
-public class Soke {
+public class TtSokeA {
 	
 	private final static BigInteger Mx = new BigInteger("8da36f68628a18107650b306f22b41448cb60fe5712dd57a", 16);
 	private final static BigInteger My = new BigInteger("1f64a649852124528a09455de6aad151b4c0a9a8c2e8269c", 16);
@@ -29,7 +29,7 @@ public class Soke {
 	private BigInteger x;
 	private String a2 = null;
 	
-	public Soke() {
+	public TtSokeA() {
 		// TODO Auto-generated constructor stub
 	}
 	
