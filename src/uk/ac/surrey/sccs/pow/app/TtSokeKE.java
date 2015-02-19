@@ -82,10 +82,6 @@ public class TtSokeKE {
 		return "04"+X.getX().toBigInteger().toString(16)+X.getY().toBigInteger().toString(16);
 	}
 	
-	public boolean verifyServer(String serverA2){
-		return serverA2 != null && this.a2 != null && serverA2.equals(this.a2);
-	}
-	
 	private String hashPwd(String pwd, String salt) {
 		PKCS5S2ParametersGenerator generator = new PKCS5S2ParametersGenerator(new SHA256Digest());
 		generator.init(PBEParametersGenerator.PKCS5PasswordToUTF8Bytes(pwd.toCharArray()), salt.getBytes(), 1000);

@@ -56,7 +56,7 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 		Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
 	}
 
-	private Soke soke;
+	private TtSokeKE soke;
 	private String sessionID;
 	private String authURL;
 	private String trans;
@@ -175,7 +175,7 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 			this.trans = this.iniTrans;
 			
 			// execute tSoke init to get first message
-			this.soke = new Soke();
+			this.soke = new TtSokeKE();
 			String m = soke.init();
 			HashMap<String, String> params = buildFirstMessage(m);
 			Log.d("POW", "params for init message");
@@ -197,13 +197,13 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 		return params;
 	}
 	
-	private HashMap<String, String> buildFinalMessage(String[] a1) {
+	private HashMap<String, String> buildFinalMessage(String k) {
 		HashMap<String, String> params = new HashMap<String, String>();
 		params.put("msg", "POWClientFinished");
 		params.put("version", "POW_v1_tSOKE_2048_SHA256_certHash");
 		params.put("sessionID", sessionID);
-		params.put("auth1", a1[0]);
-		params.put("auth1NoPwd", a1[1]);
+		params.put("key", k);
+//		params.put("auth1NoPwd", a1[1]);
 		return params;
 	}
 
@@ -225,47 +225,49 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 			Log.d("POW", value);
 		}
 
-		if (soke.isFinished()) {
-			// this is the server's finished message
-			// get server result
-			String jsonString = arg0.get("Result");
+		// this is the server's masked public DH key
+		// we have to finish tSoke and calculate authentication tokens
+		String cert = arg0.get("fingerprint");
+		Log.d("POW", "cert: "+cert);
 
-			Log.d("POW", "jsonString: " + jsonString);
-			if (jsonString == null || jsonString.equals("")){
-				sokeError();
-			}
+		// get server result
+		String jsonString = arg0.get("Result");
+
+		Log.d("POW", "jsonString: " + jsonString);
+		if (jsonString == null || jsonString.equals("")){
+			sokeError();
+		} else {
 
 			JSONObject json;
 			try {
 				json = new JSONObject(jsonString);
 				try {
-					
-//					String msg = json.getString("msg");
-//					if (msg != null && msg.contains("ERROR")){
-//						// something went wrong on the server side (maybe he couldn't verify a1)
-//						sokeError();
-//					} else {
-						String a2 = json.getString("auth2");
-						if (soke.verifyServer(a2)){
-							// verified the server -> tSoke was successful
-							// get authentication token and success URL and return to browser
-							String a3 = json.getString("auth3");
-							String successURL = json.getString("successURL");
-							successURL += "?auth3=" + a3 + "&sessionID=" + this.sessionID;
-							returnToBrowser(successURL);
-						} else {
-							// could not verify the server -> get me out of here!
-							sokeError();
-						}
-//					}
+					String serverPoint = json.getString("serverPoint");
+					String successURL = json.getString("successURL");
+					// add sent URI parameters to transcript
+					this.trans += "&POWClientExchange=" + arg0.get("Params");
+					// add result to transcript
+					this.trans += "&POWServerExchange=" + Uri.encode(jsonString);
+					String k = soke.next(serverPoint , pwd, json.getString("salt"), trans, cert);
+					Log.d("POW", "tSOKE key: "+k);
+
+					// call auth server with key k
+					if (k != null){
+						HashMap<String, String> params = buildFinalMessage(k);
+						successURL += "?key=" + k + "&sessionID=" + this.sessionID + "&msg=POWClientFinished";
+						returnToBrowser(successURL);
+					} else {
+						// this shouldn't happen!
+						sokeError();
+					}
 				} catch (JSONException e) {
 					e.printStackTrace();
 					Log.d("POW", e.getLocalizedMessage());
-					
+
 					// the server sent an error message?
 					String errorMsg = json.getString("msg");
 					Log.d("POW", "Server error message: "+errorMsg);
-					if (errorMsg.equals("ERROR_INVALID_PASSWORD")){
+					if (errorMsg.equals("ERROR_USERNAME_NOT_FOUND")){
 						usernamePwdError();
 					} else {
 						sokeError();
@@ -274,65 +276,9 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 			} catch (JSONException e) {
 				e.printStackTrace();
 				Log.d("POW", e.getLocalizedMessage());
-				
+
 				sokeError();
 			}
-		} else {
-			// this is the server's masked public DH key
-			// we have to finish tSoke and calculate authentication tokens
-			String cert = arg0.get("fingerprint");
-			Log.d("POW", "cert: "+cert);
-
-			// get server result
-			String jsonString = arg0.get("Result");
-
-			Log.d("POW", "jsonString: " + jsonString);
-			if (jsonString == null || jsonString.equals("")){
-				sokeError();
-			} else {
-				
-				JSONObject json;
-				try {
-					json = new JSONObject(jsonString);
-					try {
-						String serverPoint = json.getString("serverPoint");
-						// add sent URI parameters to transcript
-						this.trans += "&POWClientExchange=" + arg0.get("Params");
-						// add result to transcript
-						this.trans += "&POWServerExchange=" + Uri.encode(jsonString);
-						String[] a1 = soke.next(serverPoint , pwd, json.getString("salt"), trans, cert);
-						Log.d("POW", "auth token: "+a1[0]+" - "+a1[1]);
-						
-						// call auth server with auth token A1
-						if (a1 != null || a1.length == 2){
-							HashMap<String, String> params = buildFinalMessage(a1);
-							new HTTPS_POST(this, getApplicationContext(), true, params).execute(authURL);
-							//				returnToBrowser(this.successURL + "?auth1=" + auth + "&sessionID=" + this.sessionID);
-						} else {
-							// this shouldn't happen!
-							sokeError();
-						}
-					} catch (JSONException e) {
-						e.printStackTrace();
-						Log.d("POW", e.getLocalizedMessage());
-						
-						// the server sent an error message?
-						String errorMsg = json.getString("msg");
-						Log.d("POW", "Server error message: "+errorMsg);
-						if (errorMsg.equals("ERROR_USERNAME_NOT_FOUND")){
-							usernamePwdError();
-						} else {
-							sokeError();
-						}
-					}
-				} catch (JSONException e) {
-					e.printStackTrace();
-					Log.d("POW", e.getLocalizedMessage());
-					
-					sokeError();
-				}
-			}
-
 		}
 
 	}

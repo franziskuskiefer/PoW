@@ -1,4 +1,4 @@
 <h3>POW</h3>
-Version 0.9<br>
-Copyright 2014<br>
+Version 0.8<br>
+Copyright 2015<br>
 <b>https://surrey.ac.uk/sccs/</b>
