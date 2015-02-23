@@ -4,6 +4,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public class Util {
+	
+	public static final Boolean DEV = false;
 
 	public static byte[] hexStringToByteArray(String s) {
 	    int len = s.length();

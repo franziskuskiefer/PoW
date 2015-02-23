@@ -83,7 +83,8 @@ public class TtSokeA {
 		KeyParameter key = (KeyParameter)generator.generateDerivedMacParameters(256);
 
 		String hashedPwd = Util.byteArrayToHexString(key.getKey());
-		Log.d("POW", "hashedPwd: "+hashedPwd);
+		if (Util.DEV)
+			Log.d("POW", "hashedPwd: "+hashedPwd);
 
 		return hashedPwd;
 	}
@@ -131,7 +132,8 @@ public class TtSokeA {
 		sb.append("&sharedSecret=");
 		sb.append(sharedSecret);
 		
-		Log.d("POW", "to hash: "+sb.toString());
+		if (Util.DEV)
+			Log.d("POW", "to hash: "+sb.toString());
 		
 		MessageDigest mdk = MessageDigest.getInstance("SHA-256");
 		mdk.update(sb.toString().getBytes());

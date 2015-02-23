@@ -8,6 +8,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.security.Security;
@@ -64,6 +66,7 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 	private String pwd;
 	private boolean sokeStarted = false;
 	private ProgressDialog pd;
+	private String domain;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -80,7 +83,8 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 		addListener();
 
 		String image = isPersonalised();
-		Log.d("POW", "checking personalisation ...");
+		if (Util.DEV)
+			Log.d("POW", "checking personalisation ...");
 		if (image == null) {
 			Intent intent = new Intent();
 			intent.setType("image/*");
@@ -103,7 +107,8 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 		Uri data = getIntent().getData();
 
 		if (data != null) {
-			Log.d("POW", "Params: " + data.toString());
+			if (Util.DEV)
+				Log.d("POW", "Params: " + data.toString());
 			String queryString = data.getQuery();
 			try {
 				String decoded = URLDecoder.decode(queryString, "UTF-8");
@@ -125,15 +130,25 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 		try {
 			JSONObject json = new JSONObject(s);
 			
-			Log.d("POW", json.toString());
+			if (Util.DEV)
+				Log.d("POW", json.toString());
 
 			this.sessionID = json.getString("sessionID");
 			this.authURL = json.getString("authURL");
-			Log.d("POW", "auth URL: "+this.authURL);
+			this.domain = new URI(this.authURL).getHost();
+			if (Util.DEV) {
+				Log.d("POW", "auth URL: "+this.authURL);
+				Log.d("POW", "domain: "+this.domain);
+			}
 			
 			new Branding(this).execute(json.getString("branding"));
 			getActionBar().setTitle(json.getString("url"));
 		} catch (JSONException e) {
+			e.printStackTrace();
+			Log.d("POW", e.getLocalizedMessage());
+
+			parameterError();
+		} catch (URISyntaxException e) {
 			e.printStackTrace();
 			Log.d("POW", e.getLocalizedMessage());
 
@@ -178,9 +193,11 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 			this.soke = new TtSokeKE();
 			String m = soke.init();
 			HashMap<String, String> params = buildFirstMessage(m);
-			Log.d("POW", "params for init message");
-			for (Entry<String, String> s : params.entrySet()) {
-				Log.d("POW", s.getKey() +" - "+s.getValue());
+			if (Util.DEV){
+				Log.d("POW", "params for init message");
+				for (Entry<String, String> s : params.entrySet()) {
+					Log.d("POW", s.getKey() +" - "+s.getValue());
+				}
 			}
 			
 			new HTTPS_POST(this, getApplicationContext(), true, params).execute(authURL);
@@ -218,22 +235,20 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 		// this.spake.next(JsonUtils.addElement(arg0.get("Result"), "sid", "buildthesid..."));
 		
 		// XXX: debugging
-		for (String key : arg0.keySet()) {
-			Log.d("POW", key);
+		if (Util.DEV){
+			for (String key : arg0.keySet()) {
+				Log.d("POW", key);
+			}
+			for (String value : arg0.values()) {
+				Log.d("POW", value);
+			}
 		}
-		for (String value : arg0.values()) {
-			Log.d("POW", value);
-		}
-
-		// this is the server's masked public DH key
-		// we have to finish tSoke and calculate authentication tokens
-		String cert = arg0.get("fingerprint");
-		Log.d("POW", "cert: "+cert);
 
 		// get server result
 		String jsonString = arg0.get("Result");
 
-		Log.d("POW", "jsonString: " + jsonString);
+		if (Util.DEV)
+			Log.d("POW", "jsonString: " + jsonString);
 		if (jsonString == null || jsonString.equals("")){
 			sokeError();
 		} else {
@@ -248,8 +263,9 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 					this.trans += "&POWClientExchange=" + arg0.get("Params");
 					// add result to transcript
 					this.trans += "&POWServerExchange=" + Uri.encode(jsonString);
-					String k = soke.next(serverPoint , pwd, json.getString("salt"), trans, cert);
-					Log.d("POW", "tSOKE key: "+k);
+					String k = soke.next(serverPoint , pwd, json.getString("salt"), trans, this.domain);
+					if (Util.DEV)
+						Log.d("POW", "tSOKE key: "+k);
 
 					// call auth server with key k
 					if (k != null){
@@ -289,7 +305,8 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 		
 		resetProgress();
 		
-		Log.d("POW", "opening "+url+" in browser.");
+		if (Util.DEV)
+			Log.d("POW", "opening "+url+" in browser.");
 		finish();
 	}
 
@@ -318,7 +335,8 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 
 		private Drawable loadImageFromWeb(String url) {
 			try {
-				Log.d("POW", "img url: "+url);
+				if (Util.DEV)
+					Log.d("POW", "img url: "+url);
 				InputStream is = (InputStream) new URL(url).getContent();
 				return Drawable.createFromStream(is, ".png");
 			} catch (Exception e) {
@@ -417,7 +435,8 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 			BitmapFactory.Options o2 = new BitmapFactory.Options();
 			Bitmap bitmap = BitmapFactory.decodeFileDescriptor(imageSource, null, o2);
 
-			Log.d("POW", "loading image ...");
+			if (Util.DEV)
+				Log.d("POW", "loading image ...");
 			// display image
 			((ImageView)findViewById(R.id.personalised)).setImageBitmap(bitmap);
 

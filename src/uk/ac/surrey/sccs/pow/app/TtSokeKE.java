@@ -33,7 +33,7 @@ public class TtSokeKE {
 		// TODO Auto-generated constructor stub
 	}
 	
-	public String next(String YString, String pwd, String salt, String trans, String cert) {
+	public String next(String YString, String pwd, String salt, String trans, String domain) {
 		
 		// Y
 		// XXX: we only accept affine X strings for now
@@ -50,7 +50,7 @@ public class TtSokeKE {
 		ECPoint key = Y.multiply(this.x);
 		
 		try {
-			byte[] digest = genKey(cert, Util.byteArrayToHexString(key.getEncoded()), trans, h);
+			byte[] digest = genKey(domain, Util.byteArrayToHexString(key.getEncoded()), trans, h);
 			String k = Util.byteArrayToHexString(digest);
 			return k;
 		} catch (NoSuchAlgorithmException e) {
@@ -88,23 +88,25 @@ public class TtSokeKE {
 		KeyParameter key = (KeyParameter)generator.generateDerivedMacParameters(256);
 
 		String hashedPwd = Util.byteArrayToHexString(key.getKey());
-		Log.d("POW", "hashedPwd: "+hashedPwd);
+		if (Util.DEV)
+			Log.d("POW", "hashedPwd: "+hashedPwd);
 
 		return hashedPwd;
 	}
 	
-	private byte[] genKey(String certHash, String sharedSecret, String trans, String pwdHash) throws NoSuchAlgorithmException {
+	private byte[] genKey(String domain, String sharedSecret, String trans, String pwdHash) throws NoSuchAlgorithmException {
 		StringBuilder sb = new StringBuilder();
 		sb.append("POWServerHello=");
 		sb.append(trans);
 		sb.append("&passHash=");
 		sb.append(pwdHash);
-		sb.append("&certHash=");
-		sb.append(certHash);
+		sb.append("&domain=");
+		sb.append(domain);
 		sb.append("&sharedSecret=");
 		sb.append(sharedSecret);
 		
-		Log.d("POW", "to hash: "+sb.toString());
+		if (Util.DEV)
+			Log.d("POW", "to hash: "+sb.toString());
 		
 		MessageDigest mdk = MessageDigest.getInstance("SHA-256");
 		mdk.update(sb.toString().getBytes());
