@@ -5,7 +5,8 @@ import java.io.StringWriter;
 
 public class Util {
 	
-	public static final Boolean DEV = false;
+	public static final Boolean DEV = true;
+	public static final Boolean TIMING = false;
 
 	public static byte[] hexStringToByteArray(String s) {
 	    int len = s.length();

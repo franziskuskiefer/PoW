@@ -19,7 +19,6 @@ import java.util.Map.Entry;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.app.ActionBar;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -28,7 +27,6 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -67,6 +65,8 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 	private boolean sokeStarted = false;
 	private ProgressDialog pd;
 	private String domain;
+	private long totalTime;
+	private String successURL;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -75,11 +75,11 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 		// apply fix for PRNG (necessary for pre Android 4.3)
 		PRNGFixes.apply();
 		
-		setTheme(R.style.CustomTheme);
+//		setTheme(R.style.CustomTheme);
 		setContentView(R.layout.activity_main);
-		ActionBar actionBar = getActionBar();
-		actionBar.setDisplayShowHomeEnabled(false);
-		getWindow().setBackgroundDrawable(new ColorDrawable(0));
+//		ActionBar actionBar = getActionBar();
+//		actionBar.setDisplayShowHomeEnabled(false);
+//		getWindow().setBackgroundDrawable(new ColorDrawable(0));
 		addListener();
 
 		String image = isPersonalised();
@@ -178,6 +178,11 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 	}
 
 	private void startSoke() {
+		
+		// TIMING
+		if(Util.TIMING)
+			totalTime = System.nanoTime();
+		
 		if (!sokeStarted){
 			// avoid starting this more than once
 			sokeStarted = true;
@@ -214,12 +219,12 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 		return params;
 	}
 	
-	private HashMap<String, String> buildFinalMessage(String k) {
+	private HashMap<String, String> buildFinalMessage(String a1) {
 		HashMap<String, String> params = new HashMap<String, String>();
 		params.put("msg", "POWClientFinished");
 		params.put("version", "POW_v1_tSOKE_2048_SHA256_certHash");
 		params.put("sessionID", sessionID);
-		params.put("key", k);
+		params.put("auth1", a1);
 //		params.put("auth1NoPwd", a1[1]);
 		return params;
 	}
@@ -249,6 +254,17 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 
 		if (Util.DEV)
 			Log.d("POW", "jsonString: " + jsonString);
+		
+		if (soke.isFinished()) {
+			finishApp(arg0);
+		} else {
+			authMessage(arg0, jsonString);
+		}
+
+	}
+
+	private void authMessage(HashMap<String, String> arg0, String jsonString) {
+		/* COMPUTE FIRST MESSAGE */
 		if (jsonString == null || jsonString.equals("")){
 			sokeError();
 		} else {
@@ -258,20 +274,27 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 				json = new JSONObject(jsonString);
 				try {
 					String serverPoint = json.getString("serverPoint");
-					String successURL = json.getString("successURL");
+					this.successURL = json.getString("successURL");
 					// add sent URI parameters to transcript
 					this.trans += "&POWClientExchange=" + arg0.get("Params");
 					// add result to transcript
 					this.trans += "&POWServerExchange=" + Uri.encode(jsonString);
-					String k = soke.next(serverPoint , pwd, json.getString("salt"), trans, this.domain);
+					String a1 = soke.next(serverPoint , pwd, json.getString("salt"), trans, this.domain);
 					if (Util.DEV)
-						Log.d("POW", "tSOKE key: "+k);
+						Log.d("POW", "tSOKE a1: "+a1);
 
-					// call auth server with key k
-					if (k != null){
-						HashMap<String, String> params = buildFinalMessage(k);
-						successURL += "?key=" + k + "&sessionID=" + this.sessionID + "&msg=POWClientFinished";
-						returnToBrowser(successURL);
+					// call auth server with authentication token a1
+					if (a1 != null){
+
+						// TIMING
+						if(Util.TIMING){
+							long now = System.nanoTime();
+							this.totalTime = now - this.totalTime;
+							Log.d("POW", "total time: "+(double)this.totalTime/1000000.0);
+						}
+
+						HashMap<String, String> params = buildFinalMessage(a1);
+						new HTTPS_POST(this, getApplicationContext(), true, params).execute(authURL);
 					} else {
 						// this shouldn't happen!
 						sokeError();
@@ -296,7 +319,59 @@ public class MainActivity extends Activity implements OnClickListener, OnKeyList
 				sokeError();
 			}
 		}
+	}
 
+	private void finishApp(HashMap<String, String> arg0) {
+		// this is the server's finished message
+		// get server result
+		String jsonString = arg0.get("Result");
+
+		Log.d("POW", "jsonString: " + jsonString);
+		if (jsonString == null || jsonString.equals("")){
+			sokeError();
+		}
+
+		JSONObject json;
+		try {
+			json = new JSONObject(jsonString);
+			try {
+				
+				String msg = json.getString("msg");
+				if (msg != null && msg.contains("ERROR")){
+					// something went wrong on the server side (maybe he couldn't verify a1)
+					sokeError();
+				} else {
+					String a2 = json.getString("auth2");
+					if (soke.verifyServer(a2)){
+						// verified the server -> tSoke was successful
+						// get session key and return to browser (successURL)
+						String k = this.soke.getKey();
+						successURL += "?key=" + k + "&sessionID=" + this.sessionID + "&msg=POWClientFinished";
+						returnToBrowser(successURL);
+					} else {
+						// could not verify the server -> get me out of here!
+						sokeError();
+					}
+				}
+			} catch (JSONException e) {
+				e.printStackTrace();
+				Log.d("POW", e.getLocalizedMessage());
+				
+				// the server sent an error message?
+				String errorMsg = json.getString("msg");
+				Log.d("POW", "Server error message: "+errorMsg);
+				if (errorMsg.equals("ERROR_INVALID_PASSWORD")){
+					usernamePwdError();
+				} else {
+					sokeError();
+				}
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+			Log.d("POW", e.getLocalizedMessage());
+
+			sokeError();
+		}
 	}
 	
 	private void returnToBrowser(String url){

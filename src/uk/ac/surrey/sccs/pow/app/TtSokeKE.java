@@ -27,13 +27,22 @@ public class TtSokeKE {
 	private ECPoint X;
 	// secret key
 	private BigInteger x;
+	
 	private String a2 = null;
+	private String k;
+	
+	private long clientTime = 0;
 	
 	public TtSokeKE() {
 		// TODO Auto-generated constructor stub
 	}
 	
 	public String next(String YString, String pwd, String salt, String trans, String domain) {
+		
+		long timing = 0;
+		// TIMINGS
+		if (Util.TIMING)
+			timing = System.nanoTime();
 		
 		// Y
 		// XXX: we only accept affine X strings for now
@@ -49,31 +58,50 @@ public class TtSokeKE {
 		// Z <- xY
 		ECPoint key = Y.multiply(this.x);
 		
-		try {
-			byte[] digest = genKey(domain, Util.byteArrayToHexString(key.getEncoded()), trans, h);
-			String k = Util.byteArrayToHexString(digest);
-			return k;
-		} catch (NoSuchAlgorithmException e) {
-			Log.d("POW", e.getLocalizedMessage());
-			e.printStackTrace();
+		//			byte[] digest = genKey(domain, Util.byteArrayToHexString(key.getEncoded()), trans, h);
+		//			String k = Util.byteArrayToHexString(digest);
+		String a1 = genAuthTokens(domain,  Util.byteArrayToHexString(key.getEncoded()), trans, h);
+
+		// TIMINGS
+		if (Util.TIMING) {
+			long now = System.nanoTime();
+			this.clientTime += now - timing;
+			Log.d("POW", "client time: "+(double)this.clientTime/1000000.0);
 		}
-		
-		return null;
+
+		return a1;
 	}
 
 	public String init(){
 
+		// TIMINGS
+		long timing = 0;
+		if (Util.TIMING) {
+			timing = System.nanoTime();
+		}
+		
 		// XXX: PRNG fix is applied
 		SecureRandom secureRandom = new SecureRandom();
 		String s = "";
 		do {
 			do {
 				x = new BigInteger(secp129r1.getN().bitLength(), secureRandom);
+				long now = System.nanoTime();
+				Log.d("POW", "client time (sub1): "+(double)(now - timing)/1000000.0);
 			} while (x.equals(BigInteger.ZERO) || x.compareTo(secp129r1.getN()) >= 0);
+			long now = System.nanoTime();
+			Log.d("POW", "client time (sub2): "+(double)(now - timing)/1000000.0);
 			this.X = secp129r1.getG().multiply(x);
-
+			now = System.nanoTime();
+			Log.d("POW", "client time (sub3): "+(double)(now - timing)/1000000.0);
 			s = pointToString(this.X);
 		} while (s.length() != 98);
+		
+		// TIMINGS
+		if (Util.TIMING) {
+			long now = System.nanoTime();
+			this.clientTime += now - timing;
+		}
 		
 		return s;
 	}
@@ -117,4 +145,42 @@ public class TtSokeKE {
 		return this.a2 != null ? true : false;
 	}
 
+	private String genAuthTokens(String domain, String sharedSecret, String trans, String pwdHash){
+		MessageDigest md;
+		try {
+			byte[] digest = genKey(domain, sharedSecret, trans, pwdHash);
+			
+			md = MessageDigest.getInstance("SHA-256");
+			
+			md.update(Util.byteArrayToHexString(digest).getBytes());
+			md.update("&auth1".getBytes());
+			String a1 = Util.byteArrayToHexString(md.digest());
+			
+			// compute second auth token and store it to for later use
+			md.update(Util.byteArrayToHexString(digest).getBytes());
+			md.update("&auth2".getBytes());
+			this.a2 = Util.byteArrayToHexString(md.digest());
+			
+			// compute session key and store it to for later use
+			md.update(Util.byteArrayToHexString(digest).getBytes());
+			md.update("&sessionkey".getBytes());
+			this.k = Util.byteArrayToHexString(md.digest());
+			
+			return a1;
+		} catch (NoSuchAlgorithmException e) {
+			Log.d("POW", e.getLocalizedMessage());
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+	
+	public boolean verifyServer(String serverA2){
+		return serverA2 != null && this.a2 != null && serverA2.equals(this.a2);
+	}
+
+	public String getKey() {
+		return this.k;
+	}
+	
 }
