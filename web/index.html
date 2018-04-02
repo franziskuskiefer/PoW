@@ -1,0 +1,84 @@
+<html>
+	<head>
+		<title>ToDo List</title>
+		<meta charset="utf-8">
+		<!-- http://iconwanted.com/en/pixelledesigns/free-mobile-app-icons/list-bullets.html-->
+		<link rel="icon" type="image/png" href="public/images/list-bullets.png">
+		<!-- jQuery-->
+<!--		<script src="js/jquery-2.0.3.min.js"></script>-->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+		<!-- Bootstrap-->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<!-- Bootstrap-->
+<!--		<link href="css/bootstrap.min.css" rel="stylesheet">-->
+		<link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" rel="stylesheet">
+		<!-- style-->
+		<link href="css/main.css" rel="stylesheet">
+	</head>
+	<body>
+		<!-- HTML CONTENT-->
+		<div class="container">
+			<div class="div main-div">
+				<div class="jumbotron">
+					<h1 class="text-center">Passwords on the Web</h1>
+					<br>
+					<h3 class="text-center">Source & Demo</h3>
+				</div>
+			</div>
+			<!-- Description-->
+			<div class="well">
+				<h2 class="text-center">Abstract</h2>
+				<div class="row">
+					<div class="col-md-8 col-md-offset-2">
+						<div>
+							Secure protocols for password-based user authentication are well-studied in the cryptographic literature but have failed to see wide-spread adoption on the Internet; most proposals to date require extensive modifications to the Transport Layer Security (TLS) protocol, making deployment challenging.  Recently, a few modular designs have been proposed in which a cryptographically secure password-based mutual authentication protocol is run inside a confidential (but not necessarily authenticated) channel such as TLS; the password protocol is bound to the established channel to prevent active attacks.  Such protocols are useful in practice for a variety of reasons: security no longer relies on users' ability to validate server certificates and can potentially be implemented with no modifications to the secure channel protocol library.
+
+We provide a systematic study of such authentication protocols.  Building on recent advances in modelling TLS, we give a formal definition of the intended security goal, which we call password-authenticated and confidential channel establishment (PACCE). We show generically that combining a secure channel protocol, such as TLS, with a password authentication protocol, where the two protocols are bound together using either the transcript of the secure channel's handshake or the server's certificate, results in a secure PACCE protocol.  
+Our prototype based on TLS is available as a cross-platform client-side Firefox browser extension as well as an Android application and a server-side web application that can easily be installed on deployed web browsers and servers.
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- Source etc. -->
+			<div class="well">
+				<div class="row">
+					<div class="col-md-4 col-md-offset-2">
+						<h2 class="text-center">Source</h2>
+						<div>
+							Source code of the PHP server, Android application, and Firefox extension can be found here:					
+							<ul>
+								<li> <a href="/pow/server.zip">Server</a>  </li>
+								<li> <a href="https://github.com/franziskuskiefer/PoW">Android App</a> </li>
+								<li> <a href="/pow/powExtension.zip">Firefox Extensions</a> </li>
+							</ul>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<h2 class="text-center">Demo</h2>
+						<div>
+							A demo web application (ToDo list) can be found <a href="/pow/demo/"> here </a>.
+							Sample usernames and passwords include:
+							<ul>
+								<li> <code> alice / password </code> </li>
+								<li> <code> bob / 12345678 </code> </li>
+							</ul>
+							
+							To run the application you need the <a href="https://play.google.com/store/apps/details?id=uk.ac.surrey.sccs.pow.app">Android application</a> for mobile access and the <a href="/pow/pow.xpi">Firefox extension</a> for desktop access
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- Disclaimer-->
+			<div class="well">
+				<h3 class="text-center">Disclaimer</h3>
+				<div class="row">
+					<div class="col-md-8 col-md-offset-2">
+						<div class="text-warning text-center">Even though we thoroughly tested the code, you may still experience issues as this is a demo and proof of concept implementation.</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
+
+
