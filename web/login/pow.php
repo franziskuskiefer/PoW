@@ -2,7 +2,7 @@
 	
 	$MYSQL_HOST = '127.0.0.1';
 	$MYSQL_USERNAME = 'pow';
-	$MYSQL_PASSWORD = 'fhWbWHb=L`.rU_0';
+	$MYSQL_PASSWORD = 'password';
 	$MYSQL_DATABASE = 'pow';
 	
 	include 'pbkdf2.php';
